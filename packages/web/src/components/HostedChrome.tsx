@@ -40,6 +40,13 @@ export function HostedChrome({ title, children }: { title: string; children: Rea
           <button className="btn ghost" onClick={() => navigate({ kind: 'password' })}>
             Password
           </button>
+          <button
+            className="btn ghost"
+            onClick={() => navigate({ kind: 'keys' })}
+            data-testid="nav-keys"
+          >
+            API keys
+          </button>
           <button className="btn" onClick={() => void logout()} data-testid="logout">
             Sign out {user?.displayName}
           </button>

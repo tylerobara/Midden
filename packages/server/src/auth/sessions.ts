@@ -31,7 +31,7 @@ interface UserRow {
 export const SESSION_COOKIE = 'midden_session';
 export const SESSION_TTL_MS = 14 * 24 * 3600 * 1000;
 
-const hashToken = (t: string): string => createHash('sha256').update(t).digest('hex');
+export const hashToken = (t: string): string => createHash('sha256').update(t).digest('hex');
 
 export function rowToUser(r: UserRow): User {
   return {

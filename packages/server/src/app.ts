@@ -16,6 +16,7 @@ import { type Db, sqliteVersion } from './db/db.js';
 import { migrate } from './db/migrate.js';
 import { argon2Available } from './auth/password.js';
 import { resolveSession, SESSION_COOKIE, type User } from './auth/sessions.js';
+import { resolveApiToken } from './auth/tokens.js';
 import { HttpError } from './lib/errors.js';
 import { RuntimeRegistry } from './cases/runtime.js';
 import { authRoutes } from './auth/routes.js';
@@ -36,6 +37,8 @@ declare module 'fastify' {
   }
   interface FastifyRequest {
     user: User | null;
+    /** True when the request authenticated with an API key rather than a session cookie. */
+    apiToken: boolean;
   }
 }
 
@@ -64,6 +67,7 @@ export function buildApp(opts: AppOptions): FastifyInstance {
   app.decorate('blobs', new BlobStore(db, cfg.blobDir ?? joinPath(cfg.dataDir, 'blobs')));
   app.decorate('pendingIngests', new Set<Promise<unknown>>());
   app.decorateRequest('user', null);
+  app.decorateRequest('apiToken', false);
 
   app.register(cookie);
   app.register(rateLimit, { global: false });
@@ -72,8 +76,18 @@ export function buildApp(opts: AppOptions): FastifyInstance {
     limits: { fileSize: cfg.maxUploadMb * 1_048_576, files: 1, fields: 10 },
   });
 
-  // Session resolution for every request.
+  // Session resolution for every request. An explicit bearer API key wins over the
+  // cookie and must be valid — browsers cannot attach one unbidden, so no CSRF header
+  // is required for API-key requests.
   app.addHook('onRequest', async (req) => {
+    const bearer = /^Bearer (.+)$/.exec(req.headers.authorization ?? '')?.[1];
+    if (bearer) {
+      const user = resolveApiToken(db, bearer.trim());
+      if (!user) throw new HttpError(401, 'Invalid API key', 'unauthorized');
+      req.user = user;
+      req.apiToken = true;
+      return;
+    }
     req.user = resolveSession(db, req.cookies[SESSION_COOKIE]);
   });
 
@@ -83,6 +97,7 @@ export function buildApp(opts: AppOptions): FastifyInstance {
     if (!req.url.startsWith('/api/')) return;
     if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return;
     if (req.headers.upgrade) return;
+    if (req.apiToken) return;
     if (req.headers['x-midden-client'] === undefined)
       throw new HttpError(403, 'Missing X-Midden-Client header', 'csrf');
   });

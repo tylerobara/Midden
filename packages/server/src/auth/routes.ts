@@ -18,6 +18,13 @@ import {
   SESSION_COOKIE,
   type User,
 } from './sessions.js';
+import {
+  countApiTokens,
+  createApiToken,
+  listApiTokens,
+  MAX_TOKENS_PER_USER,
+  revokeApiToken,
+} from './tokens.js';
 
 const Login = z.object({
   username: z.string().trim().min(1).max(64),
@@ -45,6 +52,7 @@ const PatchUser = z.object({
   disabled: z.boolean().optional(),
   password: z.string().min(10).max(1024).optional(),
 });
+const TokenName = z.object({ name: z.string().trim().min(1).max(80) });
 
 export function publicUser(u: User): Omit<User, 'oidcSub'> {
   const { oidcSub: _o, ...rest } = u;
@@ -131,6 +139,32 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       hashPassword(body.next, argon),
       user.id,
     );
+    return { ok: true };
+  });
+
+  /* ---- API tokens ---- */
+
+  app.get('/api/auth/tokens', async (req) => {
+    const user = requireUser(req);
+    return { tokens: listApiTokens(app.db, user.id) };
+  });
+
+  app.post('/api/auth/tokens', async (req, reply) => {
+    const user = requireUser(req);
+    const { name } = TokenName.parse(req.body);
+    if (countApiTokens(app.db, user.id) >= MAX_TOKENS_PER_USER)
+      throw new HttpError(
+        409,
+        `At most ${MAX_TOKENS_PER_USER} API keys per user`,
+        'too_many_tokens',
+      );
+    const created = createApiToken(app.db, user.id, name);
+    return reply.status(201).send({ ...created.meta, key: created.key });
+  });
+
+  app.delete<{ Params: { id: string } }>('/api/auth/tokens/:id', async (req) => {
+    const user = requireUser(req);
+    if (!revokeApiToken(app.db, user.id, req.params.id)) throw notFound('No such API key');
     return { ok: true };
   });
 

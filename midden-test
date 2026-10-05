@@ -1,0 +1,179 @@
+# Nmap 7.991 scan initiated Mon Oct  5 11:01:53 2026 as: nmap -oN midden-test 192.168.10.0/24
+Nmap scan report for 192.168.10.1
+Host is up (0.0035s latency).
+Not shown: 996 filtered tcp ports (no-response)
+PORT     STATE SERVICE
+53/tcp   open  domain
+80/tcp   open  http
+443/tcp  open  https
+9100/tcp open  jetdirect
+
+Nmap scan report for 192.168.10.3
+Host is up (0.0037s latency).
+Not shown: 997 closed tcp ports (conn-refused)
+PORT     STATE SERVICE
+22/tcp   open  ssh
+111/tcp  open  rpcbind
+3128/tcp open  squid-http
+
+Nmap scan report for 192.168.10.9
+Host is up (0.0040s latency).
+Not shown: 998 closed tcp ports (conn-refused)
+PORT   STATE SERVICE
+22/tcp open  ssh
+53/tcp open  domain
+
+Nmap scan report for 192.168.10.10
+Host is up (0.0053s latency).
+Not shown: 998 closed tcp ports (conn-refused)
+PORT   STATE SERVICE
+22/tcp open  ssh
+53/tcp open  domain
+
+Nmap scan report for 192.168.10.11
+Host is up (0.0045s latency).
+Not shown: 999 closed tcp ports (conn-refused)
+PORT   STATE SERVICE
+22/tcp open  ssh
+
+Nmap scan report for 192.168.10.15
+Host is up (0.0043s latency).
+Not shown: 997 filtered tcp ports (no-response)
+PORT    STATE SERVICE
+22/tcp  open  ssh
+80/tcp  open  http
+443/tcp open  https
+
+Nmap scan report for 192.168.10.18
+Host is up (0.0039s latency).
+Not shown: 998 closed tcp ports (conn-refused)
+PORT     STATE SERVICE
+111/tcp  open  rpcbind
+3000/tcp open  ppp
+
+Nmap scan report for 192.168.10.21
+Host is up (0.0042s latency).
+Not shown: 999 closed tcp ports (conn-refused)
+PORT   STATE SERVICE
+22/tcp open  ssh
+
+Nmap scan report for 192.168.10.23
+Host is up (0.0037s latency).
+Not shown: 999 closed tcp ports (conn-refused)
+PORT   STATE SERVICE
+22/tcp open  ssh
+
+Nmap scan report for 192.168.10.24
+Host is up (0.0043s latency).
+Not shown: 997 closed tcp ports (conn-refused)
+PORT     STATE SERVICE
+22/tcp   open  ssh
+111/tcp  open  rpcbind
+3128/tcp open  squid-http
+
+Nmap scan report for 192.168.10.34
+Host is up (0.0091s latency).
+Not shown: 989 closed tcp ports (conn-refused)
+PORT     STATE SERVICE
+22/tcp   open  ssh
+3001/tcp open  nessus
+4000/tcp open  remoteanything
+6789/tcp open  ibm-db2-admin
+8080/tcp open  http-proxy
+8081/tcp open  blackice-icecap
+8085/tcp open  unknown
+8088/tcp open  radan-http
+8089/tcp open  unknown
+8200/tcp open  trivnet1
+9999/tcp open  abyss
+
+Nmap scan report for 192.168.10.35
+Host is up (0.0038s latency).
+Not shown: 998 closed tcp ports (conn-refused)
+PORT     STATE SERVICE
+22/tcp   open  ssh
+8443/tcp open  https-alt
+
+Nmap scan report for 192.168.10.37
+Host is up (0.0039s latency).
+Not shown: 995 closed tcp ports (conn-refused)
+PORT      STATE SERVICE
+22/tcp    open  ssh
+443/tcp   open  https
+8090/tcp  open  opsmessaging
+8100/tcp  open  xprint-server
+10000/tcp open  snet-sensor-mgmt
+
+Nmap scan report for 192.168.10.50
+Host is up (0.0038s latency).
+Not shown: 999 closed tcp ports (conn-refused)
+PORT   STATE SERVICE
+22/tcp open  ssh
+
+Nmap scan report for 192.168.10.199
+Host is up (0.0056s latency).
+Not shown: 998 filtered tcp ports (no-response)
+PORT    STATE SERVICE
+80/tcp  open  http
+443/tcp open  https
+
+Nmap scan report for 192.168.10.201
+Host is up (0.013s latency).
+All 1000 scanned ports on 192.168.10.201 are in ignored states.
+Not shown: 1000 closed tcp ports (conn-refused)
+
+Nmap scan report for 192.168.10.204
+Host is up (0.0042s latency).
+Not shown: 995 closed tcp ports (conn-refused)
+PORT      STATE SERVICE
+111/tcp   open  rpcbind
+2383/tcp  open  ms-olap4
+9100/tcp  open  jetdirect
+50000/tcp open  ibm-db2
+50001/tcp open  unknown
+
+Nmap scan report for 192.168.10.212
+Host is up (0.0056s latency).
+Not shown: 995 closed tcp ports (conn-refused)
+PORT      STATE SERVICE
+111/tcp   open  rpcbind
+2383/tcp  open  ms-olap4
+9100/tcp  open  jetdirect
+50000/tcp open  ibm-db2
+50001/tcp open  unknown
+
+Nmap scan report for 192.168.10.241
+Host is up (0.0043s latency).
+Not shown: 997 closed tcp ports (conn-refused)
+PORT      STATE SERVICE
+111/tcp   open  rpcbind
+9100/tcp  open  jetdirect
+50000/tcp open  ibm-db2
+
+Nmap scan report for 192.168.10.245
+Host is up (0.0045s latency).
+Not shown: 995 closed tcp ports (conn-refused)
+PORT      STATE SERVICE
+111/tcp   open  rpcbind
+2383/tcp  open  ms-olap4
+9100/tcp  open  jetdirect
+50000/tcp open  ibm-db2
+50001/tcp open  unknown
+
+Nmap scan report for 192.168.10.246
+Host is up (0.0053s latency).
+Not shown: 997 closed tcp ports (conn-refused)
+PORT      STATE SERVICE
+111/tcp   open  rpcbind
+9100/tcp  open  jetdirect
+50000/tcp open  ibm-db2
+
+Nmap scan report for 192.168.10.248
+Host is up (0.0043s latency).
+Not shown: 997 closed tcp ports (conn-refused)
+PORT      STATE SERVICE
+111/tcp   open  rpcbind
+9100/tcp  open  jetdirect
+50000/tcp open  ibm-db2
+
+# Nmap done at Mon Oct  5 11:04:35 2026 -- 256 IP addresses (22 hosts up) scanned in 162.45 seconds

@@ -125,6 +125,22 @@ Users are matched on the issuer's subject, so renaming someone upstream does not
 duplicate. A first-time SSO user with the same username as an existing local account is linked
 to it rather than duplicated.
 
+## API keys
+
+Logged-in users create API keys under **API keys** in the header (or `POST /api/auth/tokens`).
+A key acts as you, is shown once, is stored only as a SHA-256 hash, and works until revoked.
+Scripts authenticate with a bearer header instead of the session cookie:
+
+```bash
+curl -X POST https://midden.corp.example/api/cases/case_YodbHg6aG_If/scans \
+  -H "Authorization: Bearer mk_..." \
+  -F "file=@scan.xml" -F "name=perimeter sweep" -F "phase=recon"
+```
+
+No `X-Midden-Client` or cookie is needed with a bearer key (that header stays as the CSRF
+guard for cookie requests). Useful for the nmap plugin: point it at the case's
+`/api/cases/<id>/scans` endpoint and it can upload `-oX`/`-oN` output unattended.
+
 ## Backup and restore
 
 `/data` is the whole installation, but copying it while the server is running can catch the
