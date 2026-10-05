@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { writeFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { main, parseConfig, pollScan, uploadScan } from './midden-nmap.mjs';
+import { main, parseConfig, pickCase, pollScan, uploadScan } from './midden-nmap.mjs';
 
 const env = {
   MIDDEN_URL: 'https://midden.test/',
@@ -32,7 +32,7 @@ describe('parseConfig', () => {
   });
   it('lists every missing piece and rejects junk', () => {
     expect(() => parseConfig(['-f', scanFile()], {})).toThrow(
-      /MIDDEN_URL.*MIDDEN_API_KEY.*MIDDEN_CASE_ID/,
+      /MIDDEN_URL.*MIDDEN_API_KEY(?!.*MIDDEN_CASE_ID)/,
     );
     expect(parseConfig(['--help'], {})).toMatchObject({ help: true });
     expect(() => parseConfig(['--phase', 'bogus', '-f', scanFile()], env)).toThrow(/--phase/);
@@ -88,6 +88,58 @@ describe('uploadScan + pollScan', () => {
     await expect(
       pollScan(cfg, 'missing', { fetchImpl }, { intervalMs: 1, timeoutMs: 100 }),
     ).rejects.toThrow(/not found/);
+  });
+});
+
+describe('case picker', () => {
+  const listFetch = (cases: unknown[]) => vi.fn(async () => Response.json({ cases }));
+
+  it('picks by number, re-prompts on junk', async () => {
+    const cfg = { ...env, caseId: '' };
+    const fetchImpl = listFetch([
+      { id: 'case_a', number: 'CASE-1', name: 'first' },
+      { id: 'case_b', number: 'CASE-2', name: 'second', archivedAt: 'yes' },
+    ]);
+    const prompt = vi.fn(async () => (prompt.mock.calls.length === 1 ? '9' : '2'));
+    await expect(pickCase(cfg, { fetchImpl, prompt })).resolves.toBe('case_b');
+    expect(prompt).toHaveBeenCalledTimes(2);
+  });
+  it('errors on an empty list', async () => {
+    await expect(
+      pickCase({ ...env, caseId: '' }, { fetchImpl: listFetch([]), prompt: async () => '1' }),
+    ).rejects.toThrow(/no cases/);
+  });
+  it('main without a case id asks, then uploads to the pick', async () => {
+    const fetchImpl = vi.fn(async (url: string, init?: { method?: string }) =>
+      init?.method === 'POST'
+        ? Response.json({ scan: { id: 's1', status: 'ready' } })
+        : Response.json({ cases: [{ id: 'case_picked', number: 'C1', name: 'x' }] }),
+    );
+    const spawnImpl = vi.fn((_c: string, args: string[]) => {
+      writeFileSync(args[1], '<nmaprun/>');
+      return { status: 0 };
+    });
+    const prompt = vi.fn(async () => '1');
+    const code = await main(
+      ['10.0.0.0/24'],
+      { ...env, MIDDEN_CASE_ID: '' },
+      { fetchImpl, spawnImpl, prompt },
+    );
+    expect(code).toBe(0);
+    expect(String(fetchImpl.mock.calls.find(([, i]) => i?.method === 'POST')[0])).toContain(
+      'case_picked',
+    );
+  });
+  it('refuses to hang without a terminal', async () => {
+    const fetchImpl = vi.fn();
+    expect(
+      await main(
+        ['x'],
+        { ...env, MIDDEN_CASE_ID: '' },
+        { fetchImpl, spawnImpl: () => ({ status: 0 }) },
+      ),
+    ).toBe(1);
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 });
 

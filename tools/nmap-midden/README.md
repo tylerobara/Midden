@@ -11,6 +11,13 @@ export MIDDEN_CASE_ID=case_YodbHg6aG_If
 # Scan and upload (your nmap args pass through; XML capture is forced):
 node midden-nmap.mjs -sT -T4 --top-ports 1000 10.0.0.0/24
 
+# Don't know your case id? Leave MIDDEN_CASE_ID unset and run from a terminal —
+# the tool lists the cases you can access and asks:
+#   cases:
+#   > 1) CASE-7 — perimeter recon
+#   > 2) CASE-9 — lateral movement
+#   type the case number you want to upload results to:
+
 # Upload a file you already have, labelled, and block until Midden finishes parsing:
 node midden-nmap.mjs -f scan.xml --name "edge sweep" --phase discovery --wait
 ```

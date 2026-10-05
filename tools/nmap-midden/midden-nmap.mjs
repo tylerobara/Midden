@@ -52,13 +52,40 @@ export function parseConfig(argv, env) {
   const missing = [
     !cfg.url && 'MIDDEN_URL (or --url)',
     !cfg.key && 'MIDDEN_API_KEY (or --key)',
-    !cfg.caseId && 'MIDDEN_CASE_ID (or --case)',
     cfg.phase && !PHASES.includes(cfg.phase) ? `--phase must be one of ${PHASES.join(', ')}` : '',
     cfg.file && !existsSync(cfg.file) ? `no such file: ${cfg.file}` : '',
     !cfg.file && !cfg.nmap.length && 'give nmap args or -f <scan file>',
   ].filter(Boolean);
   if (missing.length) throw new Error(`config error: ${missing.join('; ')}`);
   return cfg;
+}
+
+/** Numbered case picker (used when MIDDEN_CASE_ID is unset). prompt is injectable for tests. */
+export async function pickCase(cfg, deps) {
+  const fetchImpl = deps.fetchImpl ?? fetch;
+  const res = await fetchImpl(`${cfg.url}/api/cases`, {
+    headers: { authorization: `Bearer ${cfg.key}` },
+  });
+  if (!res.ok) throw new Error(`case list failed: HTTP ${res.status}`);
+  const cases = (await res.json()).cases;
+  if (!cases.length) throw new Error('no cases to upload to — create one in the web UI first');
+  console.log('cases:');
+  cases.forEach((c, i) =>
+    console.log(`> ${i + 1}) ${c.number} — ${c.name}${c.archivedAt ? ' [archived]' : ''}`),
+  );
+  let prompt = deps.prompt;
+  if (!prompt) {
+    const rl = (await import('node:readline/promises')).default.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+    prompt = (q) => rl.question(q).finally(() => rl.close());
+  }
+  for (;;) {
+    const n = Number((await prompt('type the case number you want to upload results to: ')).trim());
+    if (Number.isInteger(n) && n >= 1 && n <= cases.length) return cases[n - 1].id;
+    console.log(`not a case number (1-${cases.length})`);
+  }
 }
 
 export async function uploadScan(cfg, filePath, deps) {
@@ -113,9 +140,22 @@ export async function main(argv, env, deps = {}) {
       'usage: midden-nmap [--name n] [--phase discovery|service|other] [--keep] [--wait]\n' +
         '         [nmap args...]            run nmap and upload its XML\n' +
         '       midden-nmap -f scan.xml [same options]   upload an existing file\n' +
-        'env: MIDDEN_URL, MIDDEN_API_KEY, MIDDEN_CASE_ID (flags --url --key --case win)',
+        'env: MIDDEN_URL, MIDDEN_API_KEY, MIDDEN_CASE_ID (flags --url --key --case win)\n' +
+        'without MIDDEN_CASE_ID the tool lists your cases and asks you to pick one',
     );
     return 0;
+  }
+  if (!cfg.caseId) {
+    if (!deps.prompt && !process.stdin.isTTY) {
+      console.error('config error: MIDDEN_CASE_ID (or --case); no terminal to pick interactively');
+      return 1;
+    }
+    try {
+      cfg.caseId = await pickCase(cfg, deps);
+    } catch (err) {
+      console.error(String(err.message ?? err));
+      return 1;
+    }
   }
   const tmp = cfg.file ? '' : mkdtempSync(join(tmpdir(), 'midden-nmap-'));
   const file = cfg.file || (tmp && join(tmp, 'scan.xml'));
