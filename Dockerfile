@@ -28,9 +28,11 @@ ENV NODE_ENV=production \
 COPY --from=build /out/server /app
 COPY --from=build /src/packages/web/dist /app/public
 COPY docker/entrypoint.sh /app/entrypoint.sh
-# The app never runs npm/npx/corepack; its bundled deps (tar, pacote, ...) are
-# pure attack surface. Drop them, then set up the data dir.
-RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+# Pull current Alpine security fixes (the published base tag lags the distro
+# repo by days), then drop npm/corepack: the app never runs a package manager
+# and the CLI's bundled deps (tar, pacote, ...) are pure attack surface.
+RUN apk upgrade --no-cache \
+ && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
       /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
       /usr/local/bin/yarn /usr/local/bin/yarnpkg \
  && mkdir -p /data && chown node:node /data /app/entrypoint.sh && chmod +x /app/entrypoint.sh
