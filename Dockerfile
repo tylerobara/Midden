@@ -4,7 +4,7 @@
 # Stage 2 runs once per target platform and only copies files, so the arm64 image
 # never runs npm/pnpm under QEMU.
 
-FROM --platform=$BUILDPLATFORM node:24.13-alpine AS build
+FROM --platform=$BUILDPLATFORM node:24.18-alpine AS build
 RUN corepack enable
 WORKDIR /src
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc tsconfig.base.json ./
@@ -20,7 +20,7 @@ RUN pnpm --filter @midden/core build \
  && pnpm --filter @midden/server deploy --legacy --prod --ignore-scripts /out/server \
  && sh scripts/check-no-native.sh /out/server/node_modules
 
-FROM node:24.13-alpine AS runtime
+FROM node:24.18-alpine AS runtime
 ENV NODE_ENV=production \
     NODE_OPTIONS=--no-warnings=ExperimentalWarning \
     MIDDEN_DATA=/data \
@@ -28,7 +28,12 @@ ENV NODE_ENV=production \
 COPY --from=build /out/server /app
 COPY --from=build /src/packages/web/dist /app/public
 COPY docker/entrypoint.sh /app/entrypoint.sh
-RUN mkdir -p /data && chown node:node /data /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+# The app never runs npm/npx/corepack; its bundled deps (tar, pacote, ...) are
+# pure attack surface. Drop them, then set up the data dir.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+      /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+      /usr/local/bin/yarn /usr/local/bin/yarnpkg \
+ && mkdir -p /data && chown node:node /data /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 USER node
 WORKDIR /app
 VOLUME ["/data"]
