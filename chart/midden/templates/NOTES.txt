@@ -1,0 +1,21 @@
+Midden is deployed. One pod, all data in the /data volume.
+
+  {{ if contains "ClusterIP" .Values.service.type }}
+Get the URL:
+  http://{{ (first .Values.ingress.hosts).host | default (printf "%s.%s.svc" (include "midden.fullname" .) .Release.Namespace) }}
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "midden.fullname" . }} 8080:{{ .Values.service.port }}
+  → http://localhost:8080
+  {{ end }}
+Sign in as {{ .Values.secret.adminUser | default "admin" }}. If you did not set
+secret.adminPassword, Midden generated a one-time password on first boot:
+
+  kubectl -n {{ .Release.Namespace }} logs deploy/{{ include "midden.fullname" . }} | grep 'one-time password'
+
+{{ if .Values.oidc.enabled }}
+SSO is enabled for {{ .Values.oidc.issuer }}.
+Register the redirect URI at your provider:
+  {{ .Values.config.MIDDEN_PUBLIC_ORIGIN | default "https://<public-origin>" }}/api/auth/oidc/callback
+{{ end }}
+Backups: exec into the pod and run
+  node /app/dist/main.js backup /data/midden-backup.db
+See docs/deploy.md for the maintenance CLI.

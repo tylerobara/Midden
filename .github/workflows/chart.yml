@@ -1,0 +1,43 @@
+name: Chart
+
+on:
+  pull_request:
+    paths:
+      - 'chart/**'
+      - '.github/workflows/chart.yml'
+
+concurrency:
+  group: chart-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: helm lint + render
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: azure/setup-helm@v5
+      - name: Lint defaults
+        run: helm lint chart/midden
+      - name: Lint with every feature enabled
+        run: |
+          helm lint chart/midden \
+            --set oidc.enabled=true --set oidc.issuer=https://idp.test \
+            --set oidc.clientId=midden --set oidc.clientSecret=s \
+            --set oidc.adminClaim=groups --set oidc.adminValue=admins \
+            --set ingress.enabled=true --set ingress.className=nginx \
+            --set gateway.enabled=true \
+            --set 'gateway.parentRefs[0].name=main' \
+            --set 'gateway.hostnames[0]=midden.test' \
+            --set config.MIDDEN_TRUST_PROXY=true \
+            --set persistence.storageClass=fast \
+            --set secret.adminPassword=test \
+            --set existingSecret=external
+      - name: Render default install
+        run: helm template midden chart/midden > /dev/null
+      - name: Render with an existing secret and no persistence
+        run: |
+          helm template midden chart/midden \
+            --set existingSecret=external --set persistence.enabled=false \
+            --set serviceAccount.name=midden > /dev/null

@@ -1,0 +1,153 @@
+# Default values for midden.
+# Midden is a single container: API, web client, SQLite database and file store.
+# The whole installation lives in the /data volume.
+
+image:
+  registry: ghcr.io
+  repository: jacstrong/midden
+  # Defaults to .Chart.AppVersion when empty.
+  tag: ''
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+imagePullSecrets: []
+nameOverride: ''
+fullnameOverride: ''
+commonLabels: {}
+
+replicaCount: 1 # Must stay 1: SQLite + local file store, volume is ReadWriteOnce.
+
+serviceAccount:
+  create: false
+  name: ''
+  annotations: {}
+
+podAnnotations: {}
+podLabels: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ['ALL']
+
+service:
+  type: ClusterIP
+  annotations: {}
+  # Port the Service listens on; the container always listens on 8080
+  # (MIDDEN_PORT is fixed in the image).
+  port: 80
+
+ingress:
+  enabled: false
+  className: ''
+  annotations: {}
+  hosts:
+    - host: midden.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+gateway:
+  # Gateway API HTTPRoute (requires the gateway-api CRDs in the cluster).
+  # Independent of ingress.enabled; enable both is pointless.
+  enabled: false
+  # Passed through to spec.parentRefs, e.g.
+  # parentRefs:
+  #   - name: main-gateway
+  #     namespace: gateway-system
+  #     sectionName: https
+  parentRefs: []
+  # Hostnames to match. Empty = match anything routed to the parent.
+  hostnames: []
+  # Optional rule filters (requestHeaderModifiers, URLRewrites, ...).
+  filters: []
+  # Optional rule matches (e.g. path-based) before backendRefs are consulted.
+  matches: []
+  # Timeout for requests, e.g. 30s. Empty = gateway default.
+  requestTimeout: ''
+
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClass: ''
+  accessModes: ['ReadWriteOnce']
+  # Reuse an existing PVC instead of creating one.
+  existingClaim: ''
+
+# Secrets (signing key, admin password, OIDC client secret).
+# Either let the chart create the Secret from the values below, or point at a
+# pre-created Secret that holds the same keys.
+existingSecret: ''
+secret:
+  create: true
+  # Signing secret for session cookies. Empty = chart generates one once and
+  # keeps it across upgrades.
+  signingKey: ''
+  # Seed the first admin. Only used while there are no users. Leave the
+  # password empty to have Midden log a one-time password on first boot.
+  adminUser: admin
+  adminPassword: ''
+
+# Non-sensitive configuration. Values are passed through as MIDDEN_* env vars.
+# See docs/deploy.md for the full list.
+config:
+  MIDDEN_TRUST_PROXY: 'false'
+  MIDDEN_OPEN_CASES: 'true'
+  MIDDEN_LOG_LEVEL: info
+  # MIDDEN_PUBLIC_ORIGIN: https://midden.corp.example
+  # MIDDEN_ARGON2_MEMORY_KIB: "32768"   # lower on Raspberry Pi
+  # MIDDEN_MAX_UPLOAD_MB: "25"
+  # MIDDEN_CASE_QUOTA_MB: "2048"
+  # MIDDEN_LOGIN_RATE_LIMIT: "30"
+  # MIDDEN_NODE_HEAP_MB: "1024"
+
+# Extra arbitrary env vars, e.g. TLS or maintenance flags.
+extraEnv: []
+# - name: MIDDEN_TLS_CERT
+#   value: /data/tls/fullchain.pem
+# - name: MIDDEN_TLS_KEY
+#   value: /data/tls/privkey.pem
+
+# OpenID Connect single sign-on. When enabled, a "Sign in with SSO" button
+# appears on the login page alongside local accounts.
+# Register https://<publicOrigin>/api/auth/oidc/callback as the redirect URI
+# at the provider (set config.MIDDEN_PUBLIC_ORIGIN accordingly).
+oidc:
+  enabled: false
+  issuer: ''
+  clientId: ''
+  # Put the secret in the chart-created Secret here, or reference an existing
+  # Secret holding it under clientSecretKey.
+  clientSecret: ''
+  existingSecret: ''
+  clientSecretKey: MIDDEN_OIDC_CLIENT_SECRET
+  scopes: 'openid profile email'
+  # When set, admin rights follow the provider on every sign-in.
+  adminClaim: ''
+  adminValue: ''
+  # Skip TLS verification of the provider (test only).
+  allowInsecure: false
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 1Gi
+
+probes:
+  liveness:
+    initialDelaySeconds: 15
+    periodSeconds: 30
+  readiness:
+    initialDelaySeconds: 5
+    periodSeconds: 10

@@ -1,0 +1,16 @@
+apiVersion: v2
+name: midden
+description: Cyber hunt and DCO attack reconstruction with terrain mapping
+type: application
+version: 0.1.0
+appVersion: '1.2'
+keywords:
+  - incident-response
+  - threat-hunting
+  - nmap
+  - attck
+home: https://github.com/jacstrong/Midden
+sources:
+  - https://github.com/jacstrong/Midden
+maintainers:
+  - name: jacstrong

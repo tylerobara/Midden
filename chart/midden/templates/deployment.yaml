@@ -1,0 +1,135 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "midden.fullname" . }}
+  labels:
+    {{- include "midden.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: Recreate # single writer to the SQLite volume
+  selector:
+    matchLabels:
+      {{- include "midden.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if and (not .Values.existingSecret) .Values.secret.create }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- end }}
+      labels:
+        {{- include "midden.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      automountServiceAccountToken: false
+      {{- with .Values.image.imagePullSecrets | default .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.serviceAccount.name }}
+      serviceAccountName: {{ . }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: midden
+          image: {{ include "midden.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: MIDDEN_DATA
+              value: /data
+            {{- range $k, $v := .Values.config }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+            {{- with .Values.secret.adminUser }}
+            - name: MIDDEN_ADMIN_USER
+              value: {{ . | quote }}
+            {{- end }}
+            {{- if or .Values.secret.adminPassword .Values.existingSecret }}
+            - name: MIDDEN_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "midden.secretName" . }}
+                  key: MIDDEN_ADMIN_PASSWORD
+                  optional: true
+            {{- end }}
+            - name: MIDDEN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "midden.secretName" . }}
+                  key: MIDDEN_SECRET
+                  optional: true
+            {{- if .Values.oidc.enabled }}
+            - name: MIDDEN_OIDC_ISSUER
+              value: {{ required "oidc.issuer is required when oidc.enabled" .Values.oidc.issuer | quote }}
+            - name: MIDDEN_OIDC_CLIENT_ID
+              value: {{ required "oidc.clientId is required when oidc.enabled" .Values.oidc.clientId | quote }}
+            - name: MIDDEN_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.oidc.existingSecret | default (include "midden.secretName" .) }}
+                  key: {{ .Values.oidc.clientSecretKey }}
+            - name: MIDDEN_OIDC_SCOPES
+              value: {{ .Values.oidc.scopes | quote }}
+            {{- if .Values.oidc.adminClaim }}
+            - name: MIDDEN_OIDC_ADMIN_CLAIM
+              value: {{ .Values.oidc.adminClaim | quote }}
+            - name: MIDDEN_OIDC_ADMIN_VALUE
+              value: {{ .Values.oidc.adminValue | quote }}
+            {{- end }}
+            {{- if .Values.oidc.allowInsecure }}
+            - name: MIDDEN_OIDC_ALLOW_INSECURE
+              value: "true"
+            {{- end }}
+            {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            {{- toYaml .Values.probes.liveness | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            {{- toYaml .Values.probes.readiness | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "midden.pvcName" . }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
