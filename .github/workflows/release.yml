@@ -38,8 +38,8 @@ jobs:
       - name: Scan pushed image
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
-          # Unfixed CVEs (no distro patch yet) must not block a release.
-          grype "${{ steps.img.outputs.image }}:${{ steps.img.outputs.version }}" --fail-on critical --ignore-unfixed
+          # --only-fixed: CVEs with no distro patch yet (e.g. zlib CVE-2026-85091) must not block a release.
+          grype "${{ steps.img.outputs.image }}:${{ steps.img.outputs.version }}" --fail-on critical --only-fixed
       - run: scripts/ci-build-image.sh "${{ steps.img.outputs.image }}" latest --push
       - run: scripts/ci-release-assets.sh "${{ steps.img.outputs.version }}"
       - uses: softprops/action-gh-release@v3
