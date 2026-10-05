@@ -47,9 +47,16 @@ jobs:
           grype "${{ steps.img.outputs.image }}:${{ steps.img.outputs.version }}" --fail-on critical --only-fixed
       - run: scripts/ci-build-image.sh "${{ steps.img.outputs.image }}" latest --push
       - run: scripts/ci-release-assets.sh "${{ steps.img.outputs.version }}"
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.24'
+      - name: Build midden CLI binaries
+        run: tools/midden/build.sh "${{ steps.img.outputs.version }}"
       - uses: softprops/action-gh-release@v3
         with:
-          files: release/*
+          files: |
+            release/*
+            tools/midden/dist/*
           generate_release_notes: true
 
   chart:

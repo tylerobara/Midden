@@ -25,15 +25,7 @@ export default tseslint.config(
     // Plain Node scripts (dev loader hooks); no TypeScript project, so declare the globals used.
     files: ['**/*.mjs'],
     languageOptions: {
-      globals: {
-        URL: 'readonly',
-        process: 'readonly',
-        console: 'readonly',
-        fetch: 'readonly',
-        FormData: 'readonly',
-        Blob: 'readonly',
-        setTimeout: 'readonly',
-      },
+      globals: { URL: 'readonly', process: 'readonly', console: 'readonly' },
     },
   },
   {

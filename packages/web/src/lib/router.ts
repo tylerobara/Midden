@@ -11,6 +11,7 @@ export type Route =
   | { kind: 'users' }
   | { kind: 'password' }
   | { kind: 'keys' }
+  | { kind: 'cli'; challenge: string }
   | { kind: 'case'; caseId: string; view: CaseView }
   | { kind: 'standalone'; view: ViewId };
 
@@ -23,6 +24,11 @@ export function parseRoute(hash: string, mode: 'server' | 'standalone'): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean);
   if (mode === 'standalone')
     return { kind: 'standalone', view: isView(parts[0]) ? parts[0] : 'graph' };
+  if (parts[0]?.startsWith('cli'))
+    return {
+      kind: 'cli',
+      challenge: new URLSearchParams(parts[0]!.slice(3)).get('challenge') ?? '',
+    };
   switch (parts[0]) {
     case 'login':
       return { kind: 'login' };
@@ -54,6 +60,8 @@ export function routeHash(r: Route): string {
       return '#/password';
     case 'keys':
       return '#/keys';
+    case 'cli':
+      return `#/cli?challenge=${r.challenge}`;
     case 'case':
       return `#/c/${r.caseId}/${r.view}`;
     case 'standalone':

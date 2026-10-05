@@ -21,6 +21,7 @@ import { HttpError } from './lib/errors.js';
 import { RuntimeRegistry } from './cases/runtime.js';
 import { authRoutes } from './auth/routes.js';
 import { oidcRoutes } from './auth/oidc.js';
+import { cliAuthRoutes } from './auth/cli.js';
 import { caseRoutes } from './cases/routes.js';
 import { wsRoutes } from './sync/ws.js';
 import { adminRoutes } from './admin/routes.js';
@@ -148,6 +149,7 @@ export function buildApp(opts: AppOptions): FastifyInstance {
 
   app.register(authRoutes);
   app.register(oidcRoutes);
+  app.register(cliAuthRoutes);
   app.register(caseRoutes);
   app.register(wsRoutes);
   app.register(adminRoutes);

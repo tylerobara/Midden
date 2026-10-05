@@ -17,3 +17,4 @@ e2e/.cache/
 release/
 packages/web/src/generated/
 website/.vitepress/cache/
+tools/midden/dist/

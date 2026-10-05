@@ -30,15 +30,6 @@ export default defineConfig({
       {
         extends: true,
         test: {
-          name: 'tools',
-          root: 'tools/nmap-midden',
-          environment: 'node',
-          include: ['*.test.ts'],
-        },
-      },
-      {
-        extends: true,
-        test: {
           name: 'web',
           root: 'packages/web',
           environment: 'jsdom',

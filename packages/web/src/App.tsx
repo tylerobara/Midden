@@ -32,6 +32,7 @@ import { LoginPage } from './pages/LoginPage';
 import { CasesPage } from './pages/CasesPage';
 import { UsersPage } from './pages/UsersPage';
 import { ApiKeysPage } from './pages/ApiKeysPage';
+import { CliAuthPage } from './pages/CliAuthPage';
 import { ChangePasswordPage } from './pages/ChangePasswordPage';
 import { toast } from './store/useToasts';
 
@@ -82,6 +83,8 @@ function HostedApp() {
       return <UsersPage />;
     case 'keys':
       return <ApiKeysPage />;
+    case 'cli':
+      return <CliAuthPage />;
     case 'case':
       return <HostedCase caseId={route.caseId} history={route.view === 'history'} />;
     default:

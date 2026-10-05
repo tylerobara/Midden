@@ -134,13 +134,24 @@ Scripts authenticate with a bearer header instead of the session cookie:
 ```bash
 curl -X POST https://midden.corp.example/api/cases/case_YodbHg6aG_If/scans \
   -H "Authorization: Bearer mk_..." \
-  -F "file=@scan.xml" -F "name=perimeter sweep" -F "phase=recon"
+  -F "file=@scan.xml" -F "name=perimeter sweep" -F "phase=discovery"
 ```
 
 No `X-Midden-Client` or cookie is needed with a bearer key (that header stays as the CSRF
-guard for cookie requests). The ready-made client is `tools/nmap-midden` — it runs nmap (or
-takes an existing `-oX`/`-oN` file) and uploads it to the case's `/api/cases/<id>/scans`
-endpoint unattended.
+guard for cookie requests).
+
+You do not have to manage keys by hand: the compiled CLI in [`tools/midden`](../tools/midden/README.md)
+signs you in through the browser (`midden login --url …` opens the web app, you press
+**Allow**, the CLI picks up a revocable key), then wraps nmap with one-command uploads:
+
+```bash
+midden -U --name "edge sweep" --phase discovery 10.0.0.0/24   # scan + upload
+midden upload scan.xml --case case_YodbHg6aG_If --wait        # upload an existing file
+```
+
+Binaries for macOS/Linux are attached to every GitHub release; `nmap` itself must be
+installed separately (`brew install nmap`). Uploads of already-captured files work without
+nmap.
 
 ## Backup and restore
 
