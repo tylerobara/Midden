@@ -138,8 +138,9 @@ curl -X POST https://midden.corp.example/api/cases/case_YodbHg6aG_If/scans \
 ```
 
 No `X-Midden-Client` or cookie is needed with a bearer key (that header stays as the CSRF
-guard for cookie requests). Useful for the nmap plugin: point it at the case's
-`/api/cases/<id>/scans` endpoint and it can upload `-oX`/`-oN` output unattended.
+guard for cookie requests). The ready-made client is `tools/nmap-midden` — it runs nmap (or
+takes an existing `-oX`/`-oN` file) and uploads it to the case's `/api/cases/<id>/scans`
+endpoint unattended.
 
 ## Backup and restore
 
