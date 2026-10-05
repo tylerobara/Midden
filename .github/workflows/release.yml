@@ -2,7 +2,9 @@ name: Release
 
 on:
   push:
-    tags: ['v*']
+    # Any numeric release tag, with or without a v prefix: 1, 1.4, 1.4.0, v1.4.0.
+    # Glob is broad; the jobs enforce strict numeric form.
+    tags: ['v[0-9]*', '[0-9]*']
 
 permissions:
   contents: write
@@ -32,8 +34,11 @@ jobs:
       - name: Image name
         id: img
         run: |
+          set -euo pipefail
           echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
-          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          base="${GITHUB_REF_NAME#v}"
+          [[ "$base" =~ ^(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*)){0,2}$ ]] || { echo "not a numeric release tag: $GITHUB_REF_NAME" >&2; exit 1; }
+          echo "version=$base" >> "$GITHUB_OUTPUT"
       - run: scripts/ci-build-image.sh "${{ steps.img.outputs.image }}" "${{ steps.img.outputs.version }}" --push
       - name: Scan pushed image
         run: |
@@ -59,7 +64,11 @@ jobs:
         run: |
           set -euo pipefail
           owner="${GITHUB_REPOSITORY_OWNER,,}"
-          version="${GITHUB_REF_NAME#v}"
+          base="${GITHUB_REF_NAME#v}"
+          [[ "$base" =~ ^(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*)){0,2}$ ]] || { echo "not a numeric release tag: $GITHUB_REF_NAME" >&2; exit 1; }
+          # Helm requires full semver: tag 1.4 becomes chart 1.4.0.
+          IFS=. read -r ma mi pa <<<"$base"
+          version="$ma.${mi:-0}.${pa:-0}"
           helm lint chart/midden
           helm package chart/midden --version "$version" --app-version "$version" --destination /tmp
           echo "$GH_TOKEN" | helm registry login ghcr.io -u "${{ github.actor }}" --password-stdin
