@@ -219,6 +219,7 @@ function ScanDetail({ scan }: { scan: ScanMeta }) {
           <dd>
             {scan.phase} · nmap {scan.nmapVersion || '?'} · {scan.startedAt || 'unknown start'}
             {scan.elapsedS !== null && ` · ${scan.elapsedS}s`}
+            {scan.uploadedByName && ` · by ${scan.uploadedByName}`}
           </dd>
           <dt>Hosts</dt>
           <dd>

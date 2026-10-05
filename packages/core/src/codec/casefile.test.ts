@@ -97,6 +97,7 @@ describe('write / read v2 round trip', () => {
         hostsTotal: 1,
         rawSha256: 'a'.repeat(64),
         uploadedBy: 'u1',
+        uploadedByName: 'Ann',
         uploadedAt: '2026-07-15T10:00:00.000Z',
         status: 'ready',
         error: '',

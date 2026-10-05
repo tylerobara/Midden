@@ -21,7 +21,18 @@ jobs:
           node-version: 24
       - run: corepack enable
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends nmap
+      - name: Image name
+        id: img
+        run: |
+          set -euo pipefail
+          echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          base="${GITHUB_REF_NAME#v}"
+          [[ "$base" =~ ^(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*)){0,2}$ ]] || { echo "not a numeric release tag: $GITHUB_REF_NAME" >&2; exit 1; }
+          echo "version=$base" >> "$GITHUB_OUTPUT"
       - run: SKIP_E2E=1 scripts/ci-test.sh
+        env:
+          # Stamps the standalone HTML's version to match the release (vite define).
+          MIDDEN_VERSION: ${{ steps.img.outputs.version }}
       - uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
@@ -31,21 +42,13 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Image name
-        id: img
-        run: |
-          set -euo pipefail
-          echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
-          base="${GITHUB_REF_NAME#v}"
-          [[ "$base" =~ ^(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*)){0,2}$ ]] || { echo "not a numeric release tag: $GITHUB_REF_NAME" >&2; exit 1; }
-          echo "version=$base" >> "$GITHUB_OUTPUT"
       - run: scripts/ci-build-image.sh "${{ steps.img.outputs.image }}" "${{ steps.img.outputs.version }}" --push
       - name: Scan pushed image
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
           # --only-fixed: CVEs with no distro patch yet (e.g. zlib CVE-2026-85091) must not block a release.
           grype "${{ steps.img.outputs.image }}:${{ steps.img.outputs.version }}" --fail-on critical --only-fixed
-      - run: scripts/ci-build-image.sh "${{ steps.img.outputs.image }}" latest --push
+      - run: scripts/ci-build-image.sh "${{ steps.img.outputs.image }}" latest --push "${{ steps.img.outputs.version }}"
       - run: scripts/ci-release-assets.sh "${{ steps.img.outputs.version }}"
       - uses: actions/setup-go@v7
         with:

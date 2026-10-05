@@ -15,7 +15,7 @@ export default defineConfig({
   plugins: [react(), viteSingleFile()],
   define: {
     __MIDDEN_MODE__: JSON.stringify('standalone'),
-    __MIDDEN_VERSION__: JSON.stringify(pkg.version),
+    __MIDDEN_VERSION__: JSON.stringify(process.env.MIDDEN_VERSION || pkg.version),
   },
   build: {
     outDir: 'dist-standalone',

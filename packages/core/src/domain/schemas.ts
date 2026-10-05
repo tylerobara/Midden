@@ -80,6 +80,7 @@ export const ScanFieldsSchema = z.object({
   hostsTotal: z.number().int().nonnegative().default(0),
   rawSha256: str,
   uploadedBy: str,
+  uploadedByName: str,
   uploadedAt: str,
   status: ScanStatusSchema.catch('ready'),
   error: str,

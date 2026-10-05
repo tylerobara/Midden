@@ -60,6 +60,7 @@ interface ScanRow {
   hosts_total: number;
   raw_sha256: string;
   uploaded_by: string;
+  uploaded_by_name: string;
   uploaded_at: string;
   status: ScanMeta['status'];
   error: string;
@@ -106,6 +107,7 @@ export function scanRowToMeta(r: ScanRow): ScanMeta {
     hostsTotal: Number(r.hosts_total),
     rawSha256: r.raw_sha256,
     uploadedBy: r.uploaded_by,
+    uploadedByName: r.uploaded_by_name,
     uploadedAt: r.uploaded_at,
     status: r.status,
     error: r.error,
@@ -259,12 +261,13 @@ export async function terrainRoutes(app: FastifyInstance): Promise<void> {
       hostsTotal: 0,
       rawSha256: stored.sha256,
       uploadedBy: user.id,
+      uploadedByName: user.displayName,
       uploadedAt: ts,
       status: 'parsing',
       error: '',
     };
     app.db.run(
-      'INSERT INTO scans (id, case_id, name, phase, fmt, raw_sha256, uploaded_by, uploaded_at, status) VALUES (?,?,?,?,?,?,?,?,?)',
+      'INSERT INTO scans (id, case_id, name, phase, fmt, raw_sha256, uploaded_by, uploaded_by_name, uploaded_at, status) VALUES (?,?,?,?,?,?,?,?,?,?)',
       scanId,
       caseId,
       meta.name,
@@ -272,6 +275,7 @@ export async function terrainRoutes(app: FastifyInstance): Promise<void> {
       meta.fmt,
       meta.rawSha256,
       meta.uploadedBy,
+      meta.uploadedByName,
       meta.uploadedAt,
       'parsing',
     );

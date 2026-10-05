@@ -14,6 +14,9 @@ COPY packages/web/package.json packages/web/
 COPY e2e/package.json e2e/
 RUN pnpm install --frozen-lockfile
 COPY . .
+# Release builds pass the git tag here so the web bundle and the server's
+# version report match each other and the CLI binaries.
+ARG MIDDEN_VERSION=
 RUN pnpm --filter @midden/core build \
  && pnpm --filter @midden/server build \
  && pnpm --filter @midden/web build \
@@ -21,10 +24,12 @@ RUN pnpm --filter @midden/core build \
  && sh scripts/check-no-native.sh /out/server/node_modules
 
 FROM node:24.18-alpine AS runtime
+ARG MIDDEN_VERSION=
 ENV NODE_ENV=production \
     NODE_OPTIONS=--no-warnings=ExperimentalWarning \
     MIDDEN_DATA=/data \
-    MIDDEN_PORT=8080
+    MIDDEN_PORT=8080 \
+    MIDDEN_VERSION=$MIDDEN_VERSION
 COPY --from=build /out/server /app
 COPY --from=build /src/packages/web/dist /app/public
 COPY docker/entrypoint.sh /app/entrypoint.sh

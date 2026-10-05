@@ -89,6 +89,8 @@ export interface ScanMeta {
   hostsTotal: number;
   rawSha256: string;
   uploadedBy: string;
+  /** Display name of the uploader, captured at upload time (empty for local/legacy scans). */
+  uploadedByName: string;
   uploadedAt: string;
   status: ScanStatus;
   error: string;

@@ -25,7 +25,7 @@ async function main(): Promise<void> {
     db,
     cfg,
     logger: { level: cfg.logLevel },
-    version: CORE_VERSION,
+    version: process.env.MIDDEN_VERSION || CORE_VERSION,
     ...(cfg.tls
       ? { https: { cert: readFileSync(cfg.tls.cert), key: readFileSync(cfg.tls.key) } }
       : {}),

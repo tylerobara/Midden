@@ -51,6 +51,7 @@ describe('standalone autosave', () => {
         hostsTotal: 1,
         rawSha256: '',
         uploadedBy: 'local',
+        uploadedByName: '',
         uploadedAt: '2026-07-15T10:00:00.000Z',
         status: 'ready',
         error: '',

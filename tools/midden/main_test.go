@@ -178,9 +178,12 @@ func TestNmapPassthroughAndUploadFlags(t *testing.T) {
 	t.Setenv("MIDDEN_NMAP", fake) // LookPath just needs it to exist + be executable
 	var captured []string
 	var uploadHit bool
+	var upName, upPhase string
 	runNmap = func(args []string) (int, error) { captured = args; return 0, nil }
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		uploadHit = true
+		_ = r.ParseMultipartForm(1 << 20)
+		upName, upPhase = r.FormValue("name"), r.FormValue("phase")
 		_, _ = w.Write([]byte(`{"scan":{"id":"s1"}}`))
 	}))
 	defer srv.Close()
@@ -192,18 +195,21 @@ func TestNmapPassthroughAndUploadFlags(t *testing.T) {
 		t.Fatalf("passthrough wrong: code=%d args=%v upload=%v", code, captured, uploadHit)
 	}
 
-	// upload: -U stripped, -oX appended, upload happens with cached login
+	// upload: -U stripped, upload flags consumed, -oX appended, cached login used
 	t.Setenv("MIDDEN_CASE_ID", "case_a")
 	load := loadStore()
 	load.Current = srv.URL
 	load.Accounts[srv.URL] = account{URL: srv.URL, Token: "mk_k"}
 	_ = saveStore(load)
-	code = cmdNmap([]string{"-sT", "-U", "10.0.0.1"}, nil, &out)
+	code = cmdNmap([]string{"-sT", "-U", "--name", "edge sweep", "--phase", "service", "10.0.0.1"}, nil, &out)
 	if code != 0 || !uploadHit {
 		t.Fatalf("upload exit %d out=%s", code, out.String())
 	}
 	if captured[0] != "-sT" || captured[1] != "10.0.0.1" || captured[2] != "-oX" || len(captured) != 4 {
 		t.Fatalf("nmap args wrong: %v", captured)
+	}
+	if upName != "edge sweep" || upPhase != "service" {
+		t.Fatalf("upload fields wrong: name=%q phase=%q", upName, upPhase)
 	}
 	if !strings.Contains(out.String(), "scan s1 uploaded") {
 		t.Errorf("missing summary: %s", out.String())

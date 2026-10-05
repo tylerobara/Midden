@@ -10,7 +10,8 @@ export default defineConfig({
   plugins: [react()],
   define: {
     __MIDDEN_MODE__: JSON.stringify('server'),
-    __MIDDEN_VERSION__: JSON.stringify(pkg.version),
+    // Release builds stamp MIDDEN_VERSION with the git tag (see Dockerfile); dev falls back to package.json.
+    __MIDDEN_VERSION__: JSON.stringify(process.env.MIDDEN_VERSION || pkg.version),
   },
   build: {
     outDir: 'dist',

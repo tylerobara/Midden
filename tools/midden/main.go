@@ -526,12 +526,30 @@ func doUpload(cf *config, file string, autoLogin bool, in io.Reader, out io.Writ
 func cmdNmap(args []string, in io.Reader, out io.Writer) int {
 	nmapArgs := []string{}
 	upload := false
-	for _, a := range args {
-		if a == "-U" || a == "--upload" {
-			upload = true
+	cf := config{}
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		// Flags the upload cares about are consumed here, never passed to nmap.
+		if v, ok := valueFlag(args, &i, "--name"); ok {
+			cf.name = v
 			continue
 		}
-		nmapArgs = append(nmapArgs, a)
+		if v, ok := valueFlag(args, &i, "--phase"); ok {
+			cf.phase = v
+			continue
+		}
+		if v, ok := valueFlag(args, &i, "--case"); ok {
+			cf.caseID = v
+			continue
+		}
+		switch a {
+		case "-U", "--upload":
+			upload = true
+		case "--wait":
+			cf.wait = true
+		default:
+			nmapArgs = append(nmapArgs, a)
+		}
 	}
 	bin := os.Getenv("MIDDEN_NMAP")
 	if bin == "" {
@@ -572,8 +590,26 @@ func cmdNmap(args []string, in io.Reader, out io.Writer) int {
 		fmt.Fprintf(out, "nmap exited %d; upload skipped\n", code)
 		return code
 	}
-	cf := &config{name: "nmap " + time.Now().Format("2006-01-02 15:04")}
-	return doUpload(cf, xmlPath, true, in, out)
+	if cf.name == "" {
+		cf.name = "nmap " + time.Now().Format("2006-01-02 15:04")
+	}
+	return doUpload(&cf, xmlPath, true, in, out)
+}
+
+// valueFlag consumes "--key value" or "--key=value" starting at *i, advancing it.
+func valueFlag(args []string, i *int, key string) (string, bool) {
+	if args[*i] == key {
+		if *i+1 >= len(args) {
+			fmt.Fprintf(os.Stderr, "midden: %s needs a value\n", key)
+			os.Exit(2)
+		}
+		*i++
+		return args[*i], true
+	}
+	if v, ok := strings.CutPrefix(args[*i], key+"="); ok {
+		return v, true
+	}
+	return "", false
 }
 
 // ------------------------------------------------------------------- plumbing

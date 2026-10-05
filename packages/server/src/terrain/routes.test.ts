@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { synthNmapXmlString } from '@midden/core';
 import { addUser, as, login, testAppWith } from '../test/helpers.js';
+import { createApiToken } from '../auth/tokens.js';
 
 const fixture = (name: string): Buffer =>
   readFileSync(new URL(`../../../core/fixtures/nmap/${name}`, import.meta.url));
@@ -56,6 +57,7 @@ async function waitReady(
 describe('terrain routes', () => {
   let app: FastifyInstance;
   let ann: string;
+  let annId: string;
   let vic: string;
   let caseId: string;
   beforeEach(async () => {
@@ -63,7 +65,7 @@ describe('terrain routes', () => {
       MIDDEN_BLOB_DIR: mkdtempSync(join(tmpdir(), 'midden-blobs-')),
       MIDDEN_MAX_UPLOAD_MB: '64',
     });
-    addUser(app, 'ann');
+    annId = addUser(app, 'ann');
     addUser(app, 'vic', 'viewer');
     await app.ready();
     ann = await login(app, 'ann');
@@ -112,6 +114,8 @@ describe('terrain routes', () => {
       hostCount: 6,
       phase: 'service',
       nmapVersion: '7.98',
+      uploadedBy: annId,
+      uploadedByName: 'ANN',
     });
 
     const page1 = await app.inject({
@@ -275,6 +279,27 @@ describe('terrain routes', () => {
     expect(app.db.get('SELECT COUNT(*) AS n FROM blobs')).toEqual({ n: 0 });
     const st = await app.inject({ method: 'GET', url: `/api/cases/${caseId}/state`, ...as(ann) });
     expect(st.json().state.scans).toEqual({});
+  });
+
+  it('attributes bearer (CLI) uploads to the API key owner', async () => {
+    const { key } = createApiToken(app.db, annId, 'midden CLI');
+    const mp = multipart(
+      { name: 'edge sweep' },
+      { name: 'edge.xml', content: fixture('lab-small.xml') },
+    );
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/cases/${caseId}/scans`,
+      headers: { authorization: `Bearer ${key}`, 'content-type': mp.headers['content-type'] },
+      payload: mp.payload,
+    });
+    expect(res.statusCode).toBe(201);
+    const list = await app.inject({ method: 'GET', url: `/api/cases/${caseId}/scans`, ...as(ann) });
+    expect(list.json().scans).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'edge sweep', uploadedBy: annId, uploadedByName: 'ANN' }),
+      ]),
+    );
   });
 
   it('accepts -oN text, infers the phase, and shares one blob between identical uploads', async () => {

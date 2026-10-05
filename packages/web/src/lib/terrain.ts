@@ -188,6 +188,7 @@ export function scanMetaFromParse(
     hostsTotal: meta.hostsTotal ?? meta.hostsUp ?? hosts,
     rawSha256: '',
     uploadedBy: 'local',
+    uploadedByName: '',
     uploadedAt: now,
     status: 'ready',
     error: '',
